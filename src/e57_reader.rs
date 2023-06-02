@@ -1,3 +1,4 @@
+
 use crate::blob::extract_blob;
 use crate::error::Converter;
 use crate::images::images_from_document;
@@ -20,10 +21,15 @@ use std::io::Read;
 use std::io::Seek;
 use std::io::Write;
 use std::path::Path;
+use wasm_bindgen::prelude::*;
+
+
+
 
 const MAX_XML_SIZE: usize = 1024 * 1024 * 10;
 
 /// Main interface for reading E57 files.
+
 pub struct E57Reader<T: Read + Seek> {
     reader: PagedReader<T>,
     header: Header,
@@ -35,6 +41,7 @@ pub struct E57Reader<T: Read + Seek> {
 
 impl<T: Read + Seek> E57Reader<T> {
     /// Creates a new E57 instance for from a reader.
+   
     pub fn new(mut reader: T) -> Result<Self> {
         // Read, parse and validate E57 header
         let header = Header::read(&mut reader)?;
@@ -66,46 +73,55 @@ impl<T: Read + Seek> E57Reader<T> {
     }
 
     /// Returns the contents of E57 binary file header structure.
+ 
     pub fn header(&self) -> Header {
         self.header.clone()
     }
 
     /// Returns the XML section of the E57 file.
+  
     pub fn xml(&self) -> &str {
         &self.xml
     }
 
     /// Returns format name stored in the XML section.
+
     pub fn format_name(&self) -> &str {
         &self.root.format
     }
 
     /// Returns GUID stored in the XML section.
+   
     pub fn guid(&self) -> &str {
         &self.root.guid
     }
 
     /// Returns a list of all point clouds in the file.
+ 
     pub fn pointclouds(&self) -> Vec<PointCloud> {
         self.pointclouds.clone()
     }
 
     /// Returns an iterator for the requested point cloud.
+
     pub fn pointcloud(&mut self, pc: &PointCloud) -> Result<PointCloudReader<T>> {
         PointCloudReader::new(pc, &mut self.reader)
     }
 
     /// Returns a list of all images in the file.
+ 
     pub fn images(&self) -> Vec<Image> {
         self.images.clone()
     }
 
     /// Writes the content of a blob to the supplied writer and returns the number of written bytes.
+ 
     pub fn blob(&mut self, blob: &Blob, writer: &mut dyn Write) -> Result<u64> {
         extract_blob(&mut self.reader, blob, writer)
     }
 
     /// Returns the optional creation date and time of the file.
+
     pub fn creation(&self) -> Option<DateTime> {
         self.root.creation.clone()
     }
@@ -117,6 +133,7 @@ impl<T: Read + Seek> E57Reader<T> {
     /// as defined by the Coordinate Transformation Service specification
     /// developed by the Open Geospatial Consortium.
     /// See also: <https://www.ogc.org/standard/wkt-crs/>
+ 
     pub fn coordinate_metadata(&self) -> Option<&str> {
         self.root.coordinate_metadata.as_deref()
     }
@@ -128,6 +145,7 @@ impl<T: Read + Seek> E57Reader<T> {
     /// After that it will CRC-validate the whole file.
     /// It will not read or check any other file header and XML data!
     /// This method returns the page size of the E57 file.
+    
     pub fn validate_crc(mut reader: T) -> Result<u64> {
         let page_size = Self::get_u64(&mut reader, 40, "page size")?;
         let mut paged_reader =
@@ -149,6 +167,7 @@ impl<T: Read + Seek> E57Reader<T> {
     /// This standalone function does only the minimal parsing required
     /// to get the XML section without any other checks or any other
     /// validation than basic CRC ckecking for the XML section itself.
+
     pub fn raw_xml(mut reader: T) -> Result<Vec<u8>> {
         let page_size = Self::get_u64(&mut reader, 40, "page size")?;
         let xml_offset = Self::get_u64(&mut reader, 24, "XML offset")?;
@@ -161,6 +180,7 @@ impl<T: Read + Seek> E57Reader<T> {
         // Read XML data
         Self::extract_xml(&mut paged_reader, xml_offset, xml_length as usize)
     }
+
 
     fn get_u64(reader: &mut T, offset: u64, name: &str) -> Result<u64> {
         reader
@@ -190,14 +210,27 @@ impl<T: Read + Seek> E57Reader<T> {
     }
 }
 
+#[wasm_bindgen]
 impl E57Reader<BufReader<File>> {
     /// Creates an E57 instance from a Path.
+  #[wasm_bindgen]
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
         let file = File::open(path).read_err("Unable to open file")?;
         let reader = BufReader::new(file);
         Self::new(reader)
     }
 }
+
+
+// pub fn add(n1: i32, n2: i32) -> i32 {
+//     n1 + n2
+// }
+
+#[wasm_bindgen]
+pub fn greet(name: &str) -> String {
+    format!("Hello, {}!", name)
+}
+
 
 #[cfg(test)]
 mod tests {
